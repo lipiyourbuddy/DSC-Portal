@@ -1,6 +1,8 @@
 package com.example.demo.util;
 
 import java.io.File;
+import java.io.InputStream;
+import java.util.concurrent.TimeUnit;
 
 public class KeyToolUtil {
 
@@ -20,7 +22,16 @@ public class KeyToolUtil {
 
 
         Process process = Runtime.getRuntime().exec(command);
-        process.waitFor();
+        boolean finished = process.waitFor(5, TimeUnit.SECONDS);
+        if (!finished) {
+            throw new RuntimeException("Keytool process timed out");
+        }
+        
+        InputStream errorStream = process.getErrorStream();
+        String errorOutput = new String(errorStream.readAllBytes());
+        System.err.println("Keytool error: " + errorOutput);
+
+
 
         return keystorePath;
     }

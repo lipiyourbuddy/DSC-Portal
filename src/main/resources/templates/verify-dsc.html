@@ -1,5 +1,17 @@
-<form th:action="@{/verify-dsc}" method="post" enctype="multipart/form-data">
-    <label>Upload Your DSC (.jks)</label>
-    <input type="file" name="dscFile" required />
-    <button type="submit" class="btn btn-primary">Submit</button>
-</form>
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Verify DSC</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-5">
+    <h3>Upload Your DSC (.jks)</h3>
+    <form th:action="@{/verify-dsc}" method="post" enctype="multipart/form-data">
+        <input type="file" name="dscFile" accept=".jks" class="form-control mb-3" required />
+        <div th:if="${error}" class="text-danger" th:text="${error}"></div>
+        <button class="btn btn-primary">Submit</button>
+    </form>
+</div>
+</body>
+</html>

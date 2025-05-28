@@ -7,14 +7,14 @@
 <body>
 <div class="container mt-5">
     <h2>User Login</h2>
-    <form th:action="@{/userlogin}" method="post">
+    <form th:action="@{/userlogin}" method="post" autocomplete="off">
         <div class="mb-3">
             <label>Full Name:</label>
-            <input type="text" name="fullName" class="form-control" required />
+            <input type="text" name="fullName" class="form-control" required autocomplete="off" />
         </div>
         <div class="mb-3">
             <label>Password:</label>
-            <input type="password" name="password" class="form-control" required />
+            <input type="password" name="password" class="form-control" required autocomplete="new-password" />
         </div>
         <div th:if="${error}" class="text-danger">
             <p th:text="${error}"></p>

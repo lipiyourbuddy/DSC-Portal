@@ -15,7 +15,7 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/", "/register", "/logout", "/login", "/send-otp", "/verify-otp",
                     "/userlogin", "/download-dsc/**", "/update-auth", "/userlist",
-                    "/css/**", "/js/**", "/images/**"
+                    "/css/**", "/js/**", "/images/**", "/userlogin", "/verify-dsc", "/user/send-otp", "/user/verify-otp"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
