@@ -13,41 +13,34 @@
 	    <table class="table table-bordered">
 	        <thead>
 	        <tr>
-	            <th>ID</th>
 	            <th>Full Name</th>
 				<th>Phone</th>
 	            <th>Email</th>
 				<th>Organization</th>
 				<th>Organization Unit</th>
 				<th>Country</th>
-	            <th>OTP</th>
-	            <th>DSC</th>
+	            <th>Auth Mode</th>
 	        </tr>
 	        </thead>
 	        <tbody>
-	        <tr th:each="user, iterStat : ${users}">
-	            <td th:text="${user.id}"></td>
+	        <tr th:each="user : ${users}">
 	            <td th:text="${user.fullName}"></td>
 				<td th:text="${user.phone}"></td>
 	            <td th:text="${user.email}"></td>
 				<td th:text="${user.organization}"></td>
 				<td th:text="${user.organizationUnit}"></td>
 				<td th:text="${user.country}"></td>
-
-	            <input type="hidden" name="userIds" th:value="${user.id}" />
-
-	            <!-- OTP checkbox -->
 	            <td>
-	                <input type="checkbox" name="otpCheckboxes" th:id="'otp-' + ${iterStat.index}"
-	                    th:checked="${user.authMode == 'OTP'}"
-	                    onclick="toggleExclusive(this)" />
-	            </td>
+	                <input type="hidden" name="userIds" th:value="${user.id}" />
 
-	            <!-- DSC checkbox -->
-	            <td>
-	                <input type="checkbox" name="dscCheckboxes" th:id="'dsc-' + ${iterStat.index}"
-	                    th:checked="${user.authMode == 'DSC'}"
-	                    onclick="toggleExclusive(this)" />
+	                <label><input type="radio" th:name="'authMode_' + ${user.id}" value="OTP"
+	                        th:checked="${user.authMode == 'OTP'}" /> OTP</label>
+
+	                <label><input type="radio" th:name="'authMode_' + ${user.id}" value="DSC"
+	                        th:checked="${user.authMode == 'DSC'}" /> DSC</label>
+
+	                <label><input type="radio" th:name="'authMode_' + ${user.id}" value="NONE"
+	                        th:checked="${user.authMode == 'NONE'}" /> None</label>
 	            </td>
 	        </tr>
 	        </tbody>
@@ -58,6 +51,7 @@
 	<div th:if="${success}" class="alert alert-success mt-3">
 	    Authentication modes updated successfully!
 	</div>
+
 
 	<script>
 	    function toggleExclusive(clicked) {

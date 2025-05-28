@@ -81,33 +81,25 @@ public class LoginController {
     }
     
     @PostMapping("/update-auth")
-    public String updateAuthModes(
-            @RequestParam List<Long> userIds,
-            @RequestParam(required = false) List<String> otpCheckboxes,
-            @RequestParam(required = false) List<String> dscCheckboxes,
-            Model model) {
+    public String updateAuthModes(@RequestParam List<Long> userIds,
+                                  @RequestParam Map<String, String> allParams,
+                                  Model model) {
 
-    	for (int i = 0; i < userIds.size(); i++) {
-    	    Long id = userIds.get(i);
-    	    int index = i;
+        for (Long userId : userIds) {
+            String paramName = "authMode_" + userId;
+            String selectedMode = allParams.getOrDefault(paramName, "NONE");
 
-    	    userRepo.findById(id).ifPresent(u -> {
-    	        boolean isOtp = otpCheckboxes != null && otpCheckboxes.size() > index && "on".equals(otpCheckboxes.get(index));
-    	        boolean isDsc = dscCheckboxes != null && dscCheckboxes.size() > index && "on".equals(dscCheckboxes.get(index));
-
-    	        String mode = "NONE";
-    	        if (isOtp) mode = "OTP";
-    	        else if (isDsc) mode = "DSC";
-
-    	        u.setAuthMode(mode);
-    	        userRepo.save(u);
-    	    });
-    	}
+            userRepo.findById(userId).ifPresent(u -> {
+                u.setAuthMode(selectedMode);
+                userRepo.save(u);
+            });
+        }
 
         model.addAttribute("users", userRepo.findAll());
         model.addAttribute("success", true);
         return "userlist";
     }
+
 
 
 
