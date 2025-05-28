@@ -23,6 +23,22 @@ public class User {
     @Column(name = "organization")
     private String organization;
     
+    @Column(name = "organization_unit")
+    private String organizationUnit;
+    
+    @Column(name = "country")
+    private String country;
+    
+    @Column(name = "password")
+    private String password;
+
+    @Column(name = "dsc_path")
+    private String dscPath;
+
+    @Column(name = "auth_mode")
+    private String authMode = "OTP"; // default
+
+    
     // Getters and setters
     public Long getId() {
         return id;
@@ -61,6 +77,41 @@ public class User {
 
     public void setOrganization(String organization) {
         this.organization = organization;
+    }
+    
+    public String getPassword() {
+        return password;
+    }
+    public void setPassword(String password) {
+        this.password = password;
+    }
+    
+    public String getDscPath() {
+        return dscPath;
+    }
+    public void setDscPath(String dscPath) {
+        this.dscPath = dscPath;
+    }
+    
+    public String getAuthMode() {
+        return authMode;
+    }
+    public void setAuthMode(String authMode) {
+        this.authMode = authMode;
+    }
+    
+    public String getOrganizationUnit() {
+        return organizationUnit;
+    }
+    public void setOrganizationUnit(String organizationUnit) {
+        this.organizationUnit = organizationUnit;
+    }
+    
+    public String getCountry() {
+        return country;
+    }
+    public void setCountry(String country) {
+        this.country = country;
     }
     
 }

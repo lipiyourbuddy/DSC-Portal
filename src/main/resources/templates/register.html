@@ -59,21 +59,31 @@
 <body>
     <div class="container">
         <h2>User Registration</h2>
-        <form th:action="@{/register}" th:object="${user}" method="post">
-            <label>Full Name:</label>
-            <input type="text" th:field="*{fullName}" required />
+		<form th:action="@{/register}" th:object="${user}" method="post">
+		    <label>Full Name:</label>
+		    <input type="text" th:field="*{fullName}" required />
 
-            <label>Email:</label>
-            <input type="email" th:field="*{email}" required />
+		    <label>Email:</label>
+		    <input type="email" th:field="*{email}" required />
 
-            <label>Phone:</label>
-            <input type="text" th:field="*{phone}" required />
+		    <label>Phone:</label>
+		    <input type="text" th:field="*{phone}" required />
 
-            <label>Organization:</label>
-            <input type="text" th:field="*{organization}" required />
+		    <label>Organization:</label>
+		    <input type="text" th:field="*{organization}" required />
 
-            <button type="submit">Register</button>
-        </form>
+		    <label>Organization Unit:</label>
+		    <input type="text" th:field="*{organizationUnit}" required />
+
+		    <label>Country:</label>
+		    <input type="text" th:field="*{country}" required />
+
+		    <label>Password:</label>
+		    <input type="password" th:field="*{password}" required />
+
+		    <button type="submit">Register</button>
+		</form>
+
     </div>
 	<p><a th:href="@{/login}">Admin Login</a></p>	
 

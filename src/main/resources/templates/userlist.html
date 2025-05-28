@@ -9,27 +9,70 @@
     <h2>Registered Users</h2>
 	<a th:href="@{/logout}" class="btn btn-secondary mb-3">Logout</a>
 
-    <table class="table table-bordered">
-        <thead>
-        <tr>
-            <th>ID</th>
-            <th>Email</th>
-            <th>Full Name</th>
-            <th>Organization</th>
-			<th>Phone</th>
-        </tr>
-        </thead>
-        <tbody>
-			<tr th:each="user : ${users}">
-			    <td th:text="${user.id}"></td>
-			    <td th:text="${user.email}"></td>
-			    <td th:text="${user.fullName}"></td>
-			    <td th:text="${user.organization}"></td>
-			    <td th:text="${user.phone}"></td>
-			</tr>
+	<form th:action="@{/update-auth}" method="post">
+	    <table class="table table-bordered">
+	        <thead>
+	        <tr>
+	            <th>ID</th>
+	            <th>Full Name</th>
+				<th>Phone</th>
+	            <th>Email</th>
+				<th>Organization</th>
+				<th>Organization Unit</th>
+				<th>Country</th>
+	            <th>OTP</th>
+	            <th>DSC</th>
+	        </tr>
+	        </thead>
+	        <tbody>
+	        <tr th:each="user, iterStat : ${users}">
+	            <td th:text="${user.id}"></td>
+	            <td th:text="${user.fullName}"></td>
+				<td th:text="${user.phone}"></td>
+	            <td th:text="${user.email}"></td>
+				<td th:text="${user.organization}"></td>
+				<td th:text="${user.organizationUnit}"></td>
+				<td th:text="${user.country}"></td>
 
-        </tbody>
-    </table>
+	            <input type="hidden" name="userIds" th:value="${user.id}" />
+
+	            <!-- OTP checkbox -->
+	            <td>
+	                <input type="checkbox" name="otpCheckboxes" th:id="'otp-' + ${iterStat.index}"
+	                    th:checked="${user.authMode == 'OTP'}"
+	                    onclick="toggleExclusive(this)" />
+	            </td>
+
+	            <!-- DSC checkbox -->
+	            <td>
+	                <input type="checkbox" name="dscCheckboxes" th:id="'dsc-' + ${iterStat.index}"
+	                    th:checked="${user.authMode == 'DSC'}"
+	                    onclick="toggleExclusive(this)" />
+	            </td>
+	        </tr>
+	        </tbody>
+	    </table>
+	    <button type="submit" class="btn btn-primary">Update Authentication Modes</button>
+	</form>
+
+	<div th:if="${success}" class="alert alert-success mt-3">
+	    Authentication modes updated successfully!
+	</div>
+
+	<script>
+	    function toggleExclusive(clicked) {
+	        const rowIndex = clicked.id.split('-')[1];
+	        const otherType = clicked.id.startsWith("otp") ? "dsc" : "otp";
+	        const other = document.getElementById(otherType + "-" + rowIndex);
+
+	        if (clicked.checked) {
+	            other.checked = false;
+	        }
+	    }
+	</script>
+
+
+
 </div>
 </body>
 </html>
