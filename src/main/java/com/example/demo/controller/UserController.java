@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.demo.model.User;
 import com.example.demo.repository.UserRepository;
@@ -21,8 +22,10 @@ import com.example.demo.util.KeyToolUtil;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 
 @Controller
@@ -136,6 +139,39 @@ public class UserController {
             return "userdashboard";
         }
     }
+    
+    @GetMapping("/verify-dsc")
+    public String showDscUpload() {
+        return "verify-dsc";
+    }
+
+    @PostMapping("/verify-dsc")
+    public String verifyDsc(@RequestParam("dscFile") MultipartFile file,
+                            HttpSession session,
+                            Model model) throws IOException {
+
+        User user = (User) session.getAttribute("loggedInUser");
+
+        if (user == null) return "redirect:/userlogin";
+
+        Path original = Paths.get(user.getDscPath()).toAbsolutePath();
+        Path uploaded = Paths.get("temp", file.getOriginalFilename());
+
+        Files.copy(file.getInputStream(), uploaded, StandardCopyOption.REPLACE_EXISTING);
+
+        boolean match = Files.mismatch(original, uploaded) == -1;
+
+        Files.deleteIfExists(uploaded);
+
+        if (match) {
+            model.addAttribute("user", user);
+            return "userdashboard";
+        } else {
+            model.addAttribute("error", "DSC verification failed.");
+            return "verify-dsc";
+        }
+    }
+
 
 
 }
