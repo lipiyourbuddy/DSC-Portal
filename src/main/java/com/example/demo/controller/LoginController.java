@@ -106,6 +106,6 @@ public class LoginController {
     // Optional logout redirect
     @GetMapping("/logout")
     public String logout() {
-        return "redirect:/";
+        return "redirect:/home";
     }
 }

@@ -16,10 +16,12 @@ public class KeyToolUtil {
         String keytoolPath = "\"C:\\Program Files\\Java\\jdk-17\\bin\\keytool.exe\"";
 
         String command = String.format(
-            "%s -genkeypair -alias \"%s\" -keyalg RSA -keystore \"%s\" -storepass \"%s\" -validity 365 -keysize 2048 -dname \"%s\" -storetype JKS",
-            keytoolPath, alias, keystorePath, password, dname
-        );
+        	    "%s -genkeypair -alias \"%s\" -keyalg RSA -keystore \"%s\" -storepass \"%s\" -keypass \"%s\" -validity 365 -keysize 2048 -dname \"%s\" -storetype JKS -noprompt",
+        	    keytoolPath, alias, keystorePath, password, password, dname
+        	);
 
+
+        System.out.println("Running keytool command: " + command);
 
         Process process = Runtime.getRuntime().exec(command);
         boolean finished = process.waitFor(5, TimeUnit.SECONDS);

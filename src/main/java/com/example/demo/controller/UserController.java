@@ -42,7 +42,7 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
     
-    @GetMapping("/")
+    @GetMapping("/home")
     public String showHomePage() {
         return "home";
     }
@@ -88,11 +88,16 @@ public class UserController {
             );
 
             user.setDscPath(dscPath);
-            user.setAuthMode("OTP");
+            user.setAuthMode("OTP"); //default
             userRepository.save(user);
+            
+            System.out.println("Step 1: Generating DSC...");
+            System.out.println("Step 2: Saving user...");
+            System.out.println("Step 3: Returning dashboard...");
+
 
             model.addAttribute("user", user);
-            return "userdashboard";
+            return "userdashboard";  
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -100,6 +105,7 @@ public class UserController {
             return "register";
         }
     }
+
 
     
     @GetMapping("/download-dsc/{filename:.+}")
@@ -209,7 +215,6 @@ public class UserController {
         User user = (User) session.getAttribute("loggedInUser");
         if (user == null) return "redirect:/userlogin";
 
-        // Get path of original DSC file generated at registration
         Path originalPath = Paths.get(user.getDscPath()).toAbsolutePath();
 
         // Save uploaded DSC temporarily

@@ -13,7 +13,7 @@ public class SecurityConfig {
         http.csrf().disable()
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                    "/", "/register", "/logout", "/login", "/send-otp", "/verify-otp",
+                    "/home", "/register", "/logout", "/login", "/send-otp", "/verify-otp",
                     "/userlogin", "/download-dsc/**", "/update-auth", "/userlist",
                     "/css/**", "/js/**", "/images/**", "/userlogin", "/verify-dsc", "/user/send-otp", "/user/verify-otp"
                 ).permitAll()
@@ -24,7 +24,7 @@ public class SecurityConfig {
                 .defaultSuccessUrl("/userlist", true)
                 .permitAll()
             )
-            .logout(logout -> logout.logoutSuccessUrl("/register"));
+            .logout(logout -> logout.logoutSuccessUrl("/home"));
 
         return http.build();
     }
