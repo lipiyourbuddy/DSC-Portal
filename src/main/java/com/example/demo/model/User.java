@@ -32,11 +32,15 @@ public class User {
     @Column(name = "password")
     private String password;
 
+    @Column(name = "public_key", columnDefinition = "TEXT")
+    private String publicKey; // Base64-encoded public key string
+
     @Column(name = "dsc_path")
-    private String dscPath;
+    private String dscPath; // Path to uploaded public key file (optional for audit)
 
     @Column(name = "auth_mode")
     private String authMode = "OTP"; // default
+
 
     
     // Getters and setters
@@ -112,6 +116,13 @@ public class User {
     }
     public void setCountry(String country) {
         this.country = country;
+    }
+    
+    public String getPublicKey() {
+        return publicKey;
+    }
+    public void setPublicKey(String publicKey) {
+        this.publicKey = publicKey;
     }
     
 }

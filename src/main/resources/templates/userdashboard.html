@@ -17,8 +17,8 @@
         <a th:href="@{'/dscs/' + ${#strings.substring(user.dscPath, user.dscPath.lastIndexOf('/') + 1)}}" class="btn btn-success">Download DSC</a>
     </div> -->
 	
-	<a th:href="@{'/download-dsc/' + ${user.fullName.replaceAll(' ', '_')} + '.jks'}" class="btn btn-success">Download DSC</a>
-
+	<!-- <a th:href="@{'/download-dsc/' + ${user.fullName.replaceAll(' ', '_')} + '.jks'}" class="btn btn-success">Download DSC</a>
+	-->
 
     <a href="/home" class="btn btn-secondary mt-3">Back to Home</a>
 </div>

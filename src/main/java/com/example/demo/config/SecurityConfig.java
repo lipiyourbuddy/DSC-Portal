@@ -8,24 +8,20 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf().disable()
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/home", "/register", "/logout", "/login", "/send-otp", "/verify-otp",
-                    "/userlogin", "/download-dsc/**", "/update-auth", "/userlist",
-                    "/css/**", "/js/**", "/images/**", "/userlogin", "/verify-dsc", "/user/send-otp", "/user/verify-otp"
-                ).permitAll()
-                .anyRequest().authenticated()
-            )
-            .formLogin(login -> login
-                .loginPage("/login")
-                .defaultSuccessUrl("/userlist", true)
-                .permitAll()
-            )
-            .logout(logout -> logout.logoutSuccessUrl("/home"));
-
-        return http.build();
-    }
+	@Bean
+	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+	    http
+	        .csrf(csrf -> csrf.disable())
+	        .authorizeHttpRequests(auth -> auth
+	            .requestMatchers("/**").permitAll()
+	        )
+	        .formLogin(login -> login
+	            .disable()
+	        )
+	        .logout(logout -> logout
+	            .logoutSuccessUrl("/home")  // ✅ redirect to home after logout
+	            .permitAll()
+	        );
+	    return http.build();
+	}
 }

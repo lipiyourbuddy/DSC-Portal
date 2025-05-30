@@ -6,12 +6,26 @@
 </head>
 <body>
 <div class="container mt-5">
-    <h3>Upload Your DSC (.jks)</h3>
-    <form th:action="@{/verify-dsc}" method="post" enctype="multipart/form-data">
-        <input type="file" name="dscFile" accept=".jks" class="form-control mb-3" required />
-        <div th:if="${error}" class="text-danger" th:text="${error}"></div>
-        <button class="btn btn-primary">Submit</button>
-    </form>
+    <div class="card p-4 shadow-sm">
+        <h3 class="mb-4">Upload Your DSC (.jks)</h3>
+
+        <!-- Error message block -->
+        <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+        <form action="/verify-dsc" method="POST" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label class="form-label">Upload Your DSC (.jks)</label>
+                <input type="file" class="form-control" name="dscFile" accept=".jks" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Key Password</label>
+                <input type="password" class="form-control" name="keyPassword" required>
+            </div>
+
+            <button type="submit" class="btn btn-outline-dark">Verify</button>
+        </form>
+    </div>
 </div>
 </body>
 </html>
