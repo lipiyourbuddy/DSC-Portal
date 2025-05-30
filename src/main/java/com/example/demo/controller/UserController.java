@@ -17,11 +17,16 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.security.KeyFactory;
 import java.security.KeyStore;
+import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Signature;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Random;
 
@@ -172,37 +177,52 @@ public class UserController {
         User user = (User) session.getAttribute("loggedInUser");
         if (user == null) return "redirect:/userlogin";
 
-        // Save uploaded DSC temporarily
-        Path tempFile = Files.createTempFile("uploaded-", ".jks");
-        dscFile.transferTo(tempFile.toFile());
+       
+        Path tempPath = Files.createTempFile("uploaded-", ".jks");
+        dscFile.transferTo(tempPath.toFile());
 
-        boolean match;
-
-        try (FileInputStream fis = new FileInputStream(tempFile.toFile())) {
-            KeyStore ks = KeyStore.getInstance("JKS");
+       
+        KeyStore ks = KeyStore.getInstance("JKS");
+        try (FileInputStream fis = new FileInputStream(tempPath.toFile())) {
             ks.load(fis, keyPassword.toCharArray());
-
-            String alias = ks.aliases().nextElement();
-            Certificate cert = ks.getCertificate(alias);
-            PublicKey uploadedKey = cert.getPublicKey();
-            String uploadedBase64 = Base64.getEncoder().encodeToString(uploadedKey.getEncoded());
-
-            match = uploadedBase64.equals(user.getPublicKey());
-        } catch (Exception e) {
-            model.addAttribute("error", "Invalid or corrupt keystore.");
-            return "verify-dsc";
-        } finally {
-            Files.deleteIfExists(tempFile);
         }
 
-        if (match) {
+        String alias = ks.aliases().nextElement();
+        PrivateKey privateKey = (PrivateKey) ks.getKey(alias, keyPassword.toCharArray());
+
+        
+        byte[] challenge = "verify-dsc-authentication".getBytes(StandardCharsets.UTF_8);
+
+        Signature signer = Signature.getInstance("SHA256withRSA");
+        signer.initSign(privateKey);
+        signer.update(challenge);
+        byte[] signatureBytes = signer.sign();
+
+       
+        byte[] storedKeyBytes = Base64.getDecoder().decode(user.getPublicKey());
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        PublicKey storedPublicKey = keyFactory.generatePublic(new X509EncodedKeySpec(storedKeyBytes));
+
+        
+        Signature verifier = Signature.getInstance("SHA256withRSA");
+        verifier.initVerify(storedPublicKey);
+        verifier.update(challenge);
+
+        boolean valid = verifier.verify(signatureBytes);
+
+        
+        Files.deleteIfExists(tempPath);
+
+        
+        if (valid) {
             model.addAttribute("user", user);
             return "userdashboard";
         } else {
-            model.addAttribute("error", "DSC public key does not match.");
+            model.addAttribute("error", "DSC verification failed: signature mismatch.");
             return "verify-dsc";
         }
     }
+
 
     @GetMapping("/download-dsc/{filename:.+}")
     @ResponseBody
