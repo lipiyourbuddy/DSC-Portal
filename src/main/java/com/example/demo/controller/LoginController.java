@@ -29,7 +29,7 @@ public class LoginController {
     // Temporary OTP store (email -> OTP)
     private Map<String, String> otpStore = new HashMap<>();
 
-    // Show login page with OTP form
+    
     @GetMapping("/login")
     public String showLoginPage(Model model) {
         model.addAttribute("otpLogin", new OtpLogin());
@@ -53,16 +53,16 @@ public class LoginController {
         String generatedOtp = String.format("%06d", new Random().nextInt(999999));
         otpStore.put(otpLogin.getEmail(), generatedOtp);
 
-        // Send OTP via email
+       
         emailService.sendOtp(otpLogin.getEmail(), generatedOtp);
 
         model.addAttribute("otpLogin", otpLogin);
         model.addAttribute("otpSent", true);
-        // Do not display OTP on screen anymore
+        
         return "login";
     }
 
-    // Handle OTP verification
+    
     @PostMapping("/verify-otp")
     public String verifyOtp(@ModelAttribute OtpLogin otpLogin, Model model) {
         String correctOtp = otpStore.get(otpLogin.getEmail());

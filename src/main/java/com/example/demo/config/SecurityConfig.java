@@ -19,7 +19,7 @@ public class SecurityConfig {
 	            .disable()
 	        )
 	        .logout(logout -> logout
-	            .logoutSuccessUrl("/home")  // ✅ redirect to home after logout
+	            .logoutSuccessUrl("/home")
 	            .permitAll()
 	        );
 	    return http.build();
