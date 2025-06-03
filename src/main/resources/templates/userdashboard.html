@@ -12,6 +12,7 @@
     <p><strong>Organization:</strong> <span th:text="${user.organization}"></span></p>
 	<p><strong>Organization Unit:</strong> <span th:text="${user.organizationUnit}"></span></p>
 	<p><strong>Country:</strong> <span th:text="${user.country}"></span></p>
+	<p><strong>Last Login Time:</strong> <span th:text="${user.lastLogin}"></span></p>
 
     <!-- <div th:if="${user.dscPath}">
         <a th:href="@{'/dscs/' + ${#strings.substring(user.dscPath, user.dscPath.lastIndexOf('/') + 1)}}" class="btn btn-success">Download DSC</a>
@@ -19,6 +20,17 @@
 	
 	<!-- <a th:href="@{'/download-dsc/' + ${user.fullName.replaceAll(' ', '_')} + '.jks'}" class="btn btn-success">Download DSC</a>
 	-->
+	<div class="card p-3 mt-4 shadow-sm">
+	    <h5>Certificate Details</h5>
+	    <ul class="list-group">
+	        <li class="list-group-item"><strong>Subject:</strong> <span th:text="${subject}">N/A</span></li>
+	        <li class="list-group-item"><strong>Issuer:</strong> <span th:text="${issuer}">N/A</span></li>
+	        <li class="list-group-item"><strong>Valid From:</strong> <span th:text="${validFrom}">N/A</span></li>
+	        <li class="list-group-item"><strong>Valid To:</strong> <span th:text="${validTo}">N/A</span></li>
+	        <li class="list-group-item"><strong>Serial Number:</strong> <span th:text="${serialNumber}">N/A</span></li>
+	        <li class="list-group-item"><strong>SHA-256 Fingerprint:</strong> <span th:text="${fingerprint}">N/A</span></li>
+	    </ul>
+	</div>
 
     <a href="/home" class="btn btn-secondary mt-3">Back to Home</a>
 </div>

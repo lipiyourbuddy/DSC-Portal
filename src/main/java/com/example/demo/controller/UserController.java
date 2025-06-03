@@ -21,12 +21,15 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.security.KeyFactory;
 import java.security.KeyStore;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.security.spec.X509EncodedKeySpec;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Random;
 
@@ -114,6 +117,8 @@ public class UserController {
             return "redirect:/verify-dsc";
         } else {
             model.addAttribute("user", user);
+            user.setLastLogin(LocalDateTime.now());
+            userRepository.save(user);
             return "userdashboard";
         }
     }
@@ -154,6 +159,8 @@ public class UserController {
 
         if (sessionOtp != null && sessionOtp.equals(otp)) {
             model.addAttribute("user", user);
+            user.setLastLogin(LocalDateTime.now());
+            userRepository.save(user);
             return "userdashboard";
         } else {
             model.addAttribute("error", "Invalid OTP. Try again.");
@@ -169,60 +176,82 @@ public class UserController {
     }
 
     @PostMapping("/verify-dsc")
-    public String verifyDsc(@RequestParam MultipartFile dscFile,
-                            @RequestParam String keyPassword,
+    public String verifyDsc(@RequestParam("dscFile") MultipartFile dscFile,
+                            @RequestParam("keyPassword") String keyPassword,
                             HttpSession session,
-                            Model model) throws Exception {
-
+                            Model model) {
         User user = (User) session.getAttribute("loggedInUser");
         if (user == null) return "redirect:/userlogin";
 
-       
-        Path tempPath = Files.createTempFile("uploaded-", ".jks");
-        dscFile.transferTo(tempPath.toFile());
+        Path tempFile = null;
 
-       
-        KeyStore ks = KeyStore.getInstance("JKS");
-        try (FileInputStream fis = new FileInputStream(tempPath.toFile())) {
-            ks.load(fis, keyPassword.toCharArray());
-        }
+        try {
+            tempFile = Files.createTempFile("uploaded-", ".jks");
+            dscFile.transferTo(tempFile.toFile());
 
-        String alias = ks.aliases().nextElement();
-        PrivateKey privateKey = (PrivateKey) ks.getKey(alias, keyPassword.toCharArray());
+            KeyStore ks = KeyStore.getInstance("JKS");
+            try (FileInputStream fis = new FileInputStream(tempFile.toFile())) {
+                ks.load(fis, keyPassword.toCharArray());
+            }
 
-        
-        byte[] challenge = "verify-dsc-authentication".getBytes(StandardCharsets.UTF_8);
+            String alias = ks.aliases().nextElement();
+            PrivateKey privateKey = (PrivateKey) ks.getKey(alias, keyPassword.toCharArray());
+            Certificate cert = ks.getCertificate(alias);
 
-        Signature signer = Signature.getInstance("SHA256withRSA");
-        signer.initSign(privateKey);
-        signer.update(challenge);
-        byte[] signatureBytes = signer.sign();
+            // Signature verification (existing logic)
+            byte[] challenge = "verify-dsc-authentication".getBytes(StandardCharsets.UTF_8);
+            Signature signer = Signature.getInstance("SHA256withRSA");
+            signer.initSign(privateKey);
+            signer.update(challenge);
+            byte[] signatureBytes = signer.sign();
 
-       
-        byte[] storedKeyBytes = Base64.getDecoder().decode(user.getPublicKey());
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PublicKey storedPublicKey = keyFactory.generatePublic(new X509EncodedKeySpec(storedKeyBytes));
+            // Compare with stored public key
+            byte[] pubKeyBytes = Base64.getDecoder().decode(user.getPublicKey());
+            PublicKey publicKey = KeyFactory.getInstance("RSA")
+                    .generatePublic(new X509EncodedKeySpec(pubKeyBytes));
+            Signature verifier = Signature.getInstance("SHA256withRSA");
+            verifier.initVerify(publicKey);
+            verifier.update(challenge);
+            boolean valid = verifier.verify(signatureBytes);
 
-        
-        Signature verifier = Signature.getInstance("SHA256withRSA");
-        verifier.initVerify(storedPublicKey);
-        verifier.update(challenge);
+            if (!valid) {
+                model.addAttribute("error", "DSC verification failed: signature mismatch.");
+                return "verify-dsc";
+            }
 
-        boolean valid = verifier.verify(signatureBytes);
+            // ✅ Extract certificate info
+            if (cert instanceof X509Certificate x509Cert) {
+                model.addAttribute("subject", x509Cert.getSubjectX500Principal().getName());
+                model.addAttribute("issuer", x509Cert.getIssuerX500Principal().getName());
+                model.addAttribute("validFrom", x509Cert.getNotBefore());
+                model.addAttribute("validTo", x509Cert.getNotAfter());
+                model.addAttribute("serialNumber", x509Cert.getSerialNumber().toString());
 
-        
-        Files.deleteIfExists(tempPath);
+                // SHA-256 fingerprint
+                MessageDigest md = MessageDigest.getInstance("SHA-256");
+                byte[] digest = md.digest(x509Cert.getEncoded());
+                StringBuilder sb = new StringBuilder();
+                for (byte b : digest) sb.append(String.format("%02X:", b));
+                String fingerprint = sb.substring(0, sb.length() - 1);
+                model.addAttribute("fingerprint", fingerprint);
+            }
 
-        
-        if (valid) {
             model.addAttribute("user", user);
-            return "userdashboard";
-        } else {
-            model.addAttribute("error", "DSC verification failed: signature mismatch.");
+            user.setLastLogin(LocalDateTime.now());
+            userRepository.save(user);
+
+            return "userdashboard"; // show details here
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            model.addAttribute("error", "Verification failed: " + e.getMessage());
             return "verify-dsc";
+        } finally {
+            if (tempFile != null) try {
+                Files.deleteIfExists(tempFile);
+            } catch (IOException ignored) {}
         }
     }
-
 
     @GetMapping("/download-dsc/{filename:.+}")
     @ResponseBody

@@ -1,5 +1,7 @@
 package com.example.demo.model;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -40,8 +42,9 @@ public class User {
 
     @Column(name = "auth_mode")
     private String authMode = "OTP"; // default
-
-
+    
+    @Column(name = "last_login")
+    private LocalDateTime lastLogin;
     
     // Getters and setters
     public Long getId() {
@@ -123,6 +126,13 @@ public class User {
     }
     public void setPublicKey(String publicKey) {
         this.publicKey = publicKey;
+    }
+    
+    public LocalDateTime getLastLogin() {
+        return lastLogin;
+    }
+    public void setLastLogin(LocalDateTime lastLogin) {
+        this.lastLogin = lastLogin;
     }
     
 }

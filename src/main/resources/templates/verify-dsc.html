@@ -7,23 +7,23 @@
 <body>
 <div class="container mt-5">
     <div class="card p-4 shadow-sm">
-        <h3 class="mb-4">Upload Your DSC (.jks)</h3>
+        <h3 class="mb-4">Verify Your Digital Signature Certificate (DSC)</h3>
 
-        <!-- Error message block -->
+        <!-- Error message -->
         <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
 
-        <form action="/verify-dsc" method="POST" enctype="multipart/form-data">
+        <form th:action="@{/verify-dsc}" method="POST" enctype="multipart/form-data">
             <div class="mb-3">
                 <label class="form-label">Upload Your DSC (.jks)</label>
                 <input type="file" class="form-control" name="dscFile" accept=".jks" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Key Password</label>
+                <label class="form-label">Keystore Password</label>
                 <input type="password" class="form-control" name="keyPassword" required>
             </div>
 
-            <button type="submit" class="btn btn-outline-dark">Verify</button>
+            <button type="submit" class="btn btn-dark">Verify</button>
         </form>
     </div>
 </div>
