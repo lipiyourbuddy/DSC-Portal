@@ -7,74 +7,69 @@
 <body>
 <div class="container mt-5">
     <h2>Registered Users</h2>
-	<a th:href="@{/logout}" class="btn btn-secondary mb-3">Logout</a>
+    <a th:href="@{/logout}" class="btn btn-secondary mb-3">Logout</a>
 
-	<form th:action="@{/update-auth}" method="post">
-	    <table class="table table-bordered">
-	        <thead>
-	        <tr>
-	            <th>Full Name</th>
-				<th>Phone</th>
-	            <th>Email</th>
-				<th>Organization</th>
-				<th>Organization Unit</th>
-				<th>Country</th>
-				<th>Public Key</th>
-	            <th>Auth Mode</th>
-	        </tr>
-	        </thead>
-	        <tbody>
-	        <tr th:each="user : ${users}">
-	            <td th:text="${user.fullName}"></td>
-				<td th:text="${user.phone}"></td>
-	            <td th:text="${user.email}"></td>
-				<td th:text="${user.organization}"></td>
-				<td th:text="${user.organizationUnit}"></td>
-				<td th:text="${user.country}"></td>
-				<td>
-				    <a class="btn btn-sm btn-outline-primary"
-				       th:href="@{'/admin/download-public-key/' + ${user.id}}">
-				        Download Public Key
-				    </a>
-				</td>
+    <!-- Filter form -->
+    <form method="get" th:action="@{/admin/userlist}" class="mb-4">
+        <label for="filter" class="form-label">Filter by Auth Mode:</label>
+        <select name="filter" id="filter" class="form-select w-auto d-inline" onchange="this.form.submit()">
+            <option th:value="ALL" th:selected="${filter == 'ALL'}">All</option>
+            <option th:value="DSC" th:selected="${filter == 'DSC'}">DSC</option>
+            <option th:value="OTP" th:selected="${filter == 'OTP'}">OTP</option>
+            <option th:value="NONE" th:selected="${filter == 'NONE'}">None</option>
+        </select>
+    </form>
 
-	            <td>
-	                <input type="hidden" name="userIds" th:value="${user.id}" />
+    <!-- Auth mode update form -->
+    <form th:action="@{/update-auth}" method="post">
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th>Full Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Organization</th>
+                <th>Organization Unit</th>
+                <th>Country</th>
+                <th>Public Key</th>
+                <th>Auth Mode</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="user : ${users}">
+                <td th:text="${user.fullName}"></td>
+                <td th:text="${user.phone}"></td>
+                <td th:text="${user.email}"></td>
+                <td th:text="${user.organization}"></td>
+                <td th:text="${user.organizationUnit}"></td>
+                <td th:text="${user.country}"></td>
+                <td>
+                    <a class="btn btn-sm btn-outline-primary"
+                       th:href="@{'/admin/download-public-key/' + ${user.id}}">
+                        Download Public Key
+                    </a>
+                </td>
+                <td>
+                    <input type="hidden" name="userIds" th:value="${user.id}" />
 
-	                <label><input type="radio" th:name="'authMode_' + ${user.id}" value="OTP"
-	                        th:checked="${user.authMode == 'OTP'}" /> OTP</label>
+                    <label><input type="radio" th:name="'authMode_' + ${user.id}" value="OTP"
+                                  th:checked="${user.authMode == 'OTP'}" /> OTP</label>
 
-	                <label><input type="radio" th:name="'authMode_' + ${user.id}" value="DSC"
-	                        th:checked="${user.authMode == 'DSC'}" /> DSC</label>
+                    <label><input type="radio" th:name="'authMode_' + ${user.id}" value="DSC"
+                                  th:checked="${user.authMode == 'DSC'}" /> DSC</label>
 
-	                <label><input type="radio" th:name="'authMode_' + ${user.id}" value="NONE"
-	                        th:checked="${user.authMode == 'NONE'}" /> None</label>
-	            </td>
-	        </tr>
-	        </tbody>
-	    </table>
-	    <button type="submit" class="btn btn-primary">Update Authentication Modes</button>
-	</form>
+                    <label><input type="radio" th:name="'authMode_' + ${user.id}" value="NONE"
+								  th:checked="${user.authMode == null}" /> None</label>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <button type="submit" class="btn btn-primary">Update Authentication Modes</button>
+    </form>
 
-	<div th:if="${success}" class="alert alert-success mt-3">
-	    Authentication modes updated successfully!
-	</div>
-
-
-	<script>
-	    function toggleExclusive(clicked) {
-	        const rowIndex = clicked.id.split('-')[1];
-	        const otherType = clicked.id.startsWith("otp") ? "dsc" : "otp";
-	        const other = document.getElementById(otherType + "-" + rowIndex);
-
-	        if (clicked.checked) {
-	            other.checked = false;
-	        }
-	    }
-	</script>
-
-
-
+    <div th:if="${success}" class="alert alert-success mt-3">
+        Authentication modes updated successfully!
+    </div>
 </div>
 </body>
 </html>

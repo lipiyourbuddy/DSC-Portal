@@ -16,6 +16,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -60,6 +61,9 @@ public class LoginController {
 
         // Generate and store OTP
         String generatedOtp = String.format("%06d", new Random().nextInt(999999));
+        String normalizedEmail = admin.getEmail().trim().toLowerCase();
+        otpStore.put(normalizedEmail, generatedOtp);
+
         otpStore.put(otpLogin.getEmail(), generatedOtp);
 
        
@@ -74,40 +78,60 @@ public class LoginController {
     
     @PostMapping("/verify-otp")
     public String verifyOtp(@ModelAttribute OtpLogin otpLogin, Model model) {
-        String correctOtp = otpStore.get(otpLogin.getEmail());
+        if (otpLogin.getEmail() == null || otpLogin.getOtp() == null) {
+            model.addAttribute("error", "Email and OTP are required.");
+            model.addAttribute("otpSent", true);
+            model.addAttribute("otpLogin", otpLogin);
+            return "login";
+        }
 
-        if (correctOtp != null && correctOtp.equals(otpLogin.getOtp())) {
+        String email = otpLogin.getEmail().trim().toLowerCase();
+        String correctOtp = otpStore.get(email);
+
+        if (correctOtp != null && correctOtp.equals(otpLogin.getOtp().trim())) {
             List<User> users = (List<User>) userRepo.findAll();
             model.addAttribute("users", users);
-            otpStore.remove(otpLogin.getEmail());
+            otpStore.remove(email);
             return "userlist";
         } else {
             model.addAttribute("error", "Invalid OTP");
             model.addAttribute("otpSent", true);
             model.addAttribute("otpLogin", otpLogin);
+            
+            System.out.println("Submitted Email: " + otpLogin.getEmail());
+            System.out.println("Submitted OTP: " + otpLogin.getOtp());
+            System.out.println("Expected OTP: " + correctOtp);
+
             return "login";
         }
     }
+
     
     @PostMapping("/update-auth")
     public String updateAuthModes(@RequestParam List<Long> userIds,
                                   @RequestParam Map<String, String> allParams,
-                                  Model model) {
+                                  RedirectAttributes redirectAttributes) {
 
         for (Long userId : userIds) {
             String paramName = "authMode_" + userId;
             String selectedMode = allParams.getOrDefault(paramName, "NONE");
 
-            userRepo.findById(userId).ifPresent(u -> {
-                u.setAuthMode(selectedMode);
-                userRepo.save(u);
+            userRepo.findById(userId).ifPresent(user -> {
+                if ("NONE".equalsIgnoreCase(selectedMode)) {
+                    user.setAuthMode(null); 
+                } else {
+                    user.setAuthMode(selectedMode); // OTP or DSC
+                }
+                userRepo.save(user);
             });
         }
 
-        model.addAttribute("users", userRepo.findAll());
-        model.addAttribute("success", true);
-        return "userlist";
+        redirectAttributes.addFlashAttribute("success", true);
+        return "redirect:/admin/userlist";
     }
+
+    
+    
     
     @GetMapping("/admin/download-public-key/{userId}")
     public ResponseEntity<Resource> downloadPublicKey(@PathVariable Long userId) {
@@ -140,7 +164,29 @@ public class LoginController {
         }
     }
 
+    @GetMapping("/admin/userlist")
+    public String getUserList(@RequestParam(name = "filter", required = false, defaultValue = "ALL") String filter,
+                              Model model) {
+        List<User> users;
 
+        switch (filter.toUpperCase()) {
+            case "DSC":
+                users = userRepo.findByAuthMode("DSC");
+                break;
+            case "OTP":
+                users = userRepo.findByAuthMode("OTP");
+                break;
+            case "NONE":
+                users = userRepo.findByAuthModeIsNull(); 
+                break;
+            default:
+                users = (List<User>) userRepo.findAll();
+        }
+
+        model.addAttribute("users", users);
+        model.addAttribute("filter", filter.toUpperCase());
+        return "userlist";
+    }
 
 
 
