@@ -7,11 +7,20 @@ import com.example.demo.repository.AdminRepository;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 @Controller
@@ -99,6 +108,38 @@ public class LoginController {
         model.addAttribute("success", true);
         return "userlist";
     }
+    
+    @GetMapping("/admin/download-public-key/{userId}")
+    public ResponseEntity<Resource> downloadPublicKey(@PathVariable Long userId) {
+        Optional<User> optionalUser = userRepo.findById(userId);
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        User user = optionalUser.get();
+
+        try {
+            byte[] keyBytes = Base64.getDecoder().decode(user.getPublicKey());
+            Path tempFile = Files.createTempFile("publicKey-", ".pem");
+
+            String pemFormatted = "-----BEGIN PUBLIC KEY-----\n" +
+                    Base64.getEncoder().encodeToString(keyBytes).replaceAll("(.{64})", "$1\n") +
+                    "\n-----END PUBLIC KEY-----\n";
+
+            Files.write(tempFile, pemFormatted.getBytes(StandardCharsets.UTF_8));
+
+            Resource resource = new FileSystemResource(tempFile.toFile());
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + user.getFullName() + "_public_key.pem")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(resource);
+
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
 
 
 

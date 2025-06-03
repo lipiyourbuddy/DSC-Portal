@@ -19,6 +19,7 @@
 				<th>Organization</th>
 				<th>Organization Unit</th>
 				<th>Country</th>
+				<th>Public Key</th>
 	            <th>Auth Mode</th>
 	        </tr>
 	        </thead>
@@ -30,6 +31,13 @@
 				<td th:text="${user.organization}"></td>
 				<td th:text="${user.organizationUnit}"></td>
 				<td th:text="${user.country}"></td>
+				<td>
+				    <a class="btn btn-sm btn-outline-primary"
+				       th:href="@{'/admin/download-public-key/' + ${user.id}}">
+				        Download Public Key
+				    </a>
+				</td>
+
 	            <td>
 	                <input type="hidden" name="userIds" th:value="${user.id}" />
 

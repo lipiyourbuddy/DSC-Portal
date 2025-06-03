@@ -174,10 +174,12 @@ public class UserController {
         if (user == null) return "redirect:/userlogin";
         return "verify-dsc";
     }
+    
+    
 
     @PostMapping("/verify-dsc")
-    public String verifyDsc(@RequestParam("dscFile") MultipartFile dscFile,
-                            @RequestParam("keyPassword") String keyPassword,
+    public String verifyDsc(@RequestParam MultipartFile dscFile,
+                            @RequestParam String keyPassword,
                             HttpSession session,
                             Model model) {
         User user = (User) session.getAttribute("loggedInUser");
@@ -198,14 +200,14 @@ public class UserController {
             PrivateKey privateKey = (PrivateKey) ks.getKey(alias, keyPassword.toCharArray());
             Certificate cert = ks.getCertificate(alias);
 
-            // Signature verification (existing logic)
+           
             byte[] challenge = "verify-dsc-authentication".getBytes(StandardCharsets.UTF_8);
             Signature signer = Signature.getInstance("SHA256withRSA");
             signer.initSign(privateKey);
             signer.update(challenge);
             byte[] signatureBytes = signer.sign();
 
-            // Compare with stored public key
+            
             byte[] pubKeyBytes = Base64.getDecoder().decode(user.getPublicKey());
             PublicKey publicKey = KeyFactory.getInstance("RSA")
                     .generatePublic(new X509EncodedKeySpec(pubKeyBytes));
@@ -219,7 +221,7 @@ public class UserController {
                 return "verify-dsc";
             }
 
-            // ✅ Extract certificate info
+            
             if (cert instanceof X509Certificate x509Cert) {
                 model.addAttribute("subject", x509Cert.getSubjectX500Principal().getName());
                 model.addAttribute("issuer", x509Cert.getIssuerX500Principal().getName());
@@ -240,7 +242,7 @@ public class UserController {
             user.setLastLogin(LocalDateTime.now());
             userRepository.save(user);
 
-            return "userdashboard"; // show details here
+            return "userdashboard"; 
 
         } catch (Exception e) {
             e.printStackTrace();
