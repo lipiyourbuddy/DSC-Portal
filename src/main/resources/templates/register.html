@@ -36,8 +36,13 @@
     </div>
 
     <div class="container">
+	
         <form th:action="@{/register}" method="post" enctype="multipart/form-data" th:object="${user}">
-            <div class="mb-3">
+            
+			<!-- Error alert -->
+						<div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+			
+			<div class="mb-3">
                 <label for="fullName" class="form-label">Full Name</label>
                 <input type="text" class="form-control" id="fullName" th:field="*{fullName}" required>
             </div>
@@ -80,6 +85,9 @@
             <div class="d-grid gap-2">
                 <button type="submit" class="btn btn-primary">Register</button>
             </div>
+			
+			
+
         </form>
     </div>
 

@@ -16,6 +16,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -32,8 +33,14 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.chrono.ChronoLocalDate;
 import java.util.Base64;
+import java.util.Date;
 import java.util.Random;
+
+
+import java.time.LocalDate;
 
 @Controller
 public class UserController {
@@ -66,17 +73,21 @@ public class UserController {
     @PostMapping("/register")
     public String registerUser(@ModelAttribute User user,
                                @RequestParam("publicKeyFile") MultipartFile file,
-                               HttpSession session) throws Exception {
-        
-        String savePath = "C:/Users/C22684/eclipse-workspace/springemployee_project6/src/main/resources/static/publickeys/" + file.getOriginalFilename();
-        Path path = Paths.get(savePath);
-        Files.createDirectories(path.getParent());
-        file.transferTo(path.toFile());
+                               Model model,
+                               HttpSession session,
+                               RedirectAttributes redirectAttributes) throws Exception {
 
-        System.out.println("File saved\n\n");
+        
+        String uploadDir = "C:/dsc-uploads/publickeys/";
+        Files.createDirectories(Paths.get(uploadDir));
+
+        String savePath = uploadDir + file.getOriginalFilename();
+        Path path = Paths.get(savePath);
+        file.transferTo(path.toFile());
 
         user.setDscPath("/publickeys/" + file.getOriginalFilename());
 
+        
         KeyStore ks = KeyStore.getInstance("JKS");
         try (FileInputStream fis = new FileInputStream(path.toFile())) {
             ks.load(fis, user.getPassword().toCharArray());
@@ -85,17 +96,64 @@ public class UserController {
         String alias = ks.aliases().nextElement();
         Certificate cert = ks.getCertificate(alias);
         PublicKey publicKey = cert.getPublicKey();
+        X509Certificate x509Cert = (X509Certificate) cert;
 
+        
+        String subjectDN = x509Cert.getSubjectX500Principal().getName();
+        String cn = null;
+        for (String part : subjectDN.split(",")) {
+            part = part.trim();
+            if (part.startsWith("CN=")) {
+                cn = part.substring(3).trim();
+                break;
+            }
+        }
+
+        if (cn == null || !cn.equalsIgnoreCase(user.getFullName().trim())) {
+            model.addAttribute("error", "DSC CN mismatch: Certificate does not belong to the entered user name.");
+            return "register";
+        }
+
+        
+        LocalDate expiryDate = x509Cert.getNotAfter().toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+
+        if (LocalDate.now().isAfter(expiryDate)) {
+            model.addAttribute("error", "DSC Invalid: Certificate has expired.");
+            return "register";
+        }
+
+        
         String publicKeyBase64 = Base64.getEncoder().encodeToString(publicKey.getEncoded());
         user.setPublicKey(publicKeyBase64);
-
+        user.setLastLogin(LocalDateTime.now());
         userRepository.save(user);
 
-       
         session.setAttribute("loggedInUser", user);
+
+        
+        redirectAttributes.addFlashAttribute("subject", x509Cert.getSubjectX500Principal().getName());
+        redirectAttributes.addFlashAttribute("issuer", x509Cert.getIssuerX500Principal().getName());
+        redirectAttributes.addFlashAttribute("validFrom", x509Cert.getNotBefore());
+        redirectAttributes.addFlashAttribute("validTo", x509Cert.getNotAfter());
+        redirectAttributes.addFlashAttribute("serialNumber", x509Cert.getSerialNumber().toString());
+
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(x509Cert.getEncoded());
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) sb.append(String.format("%02X:", b));
+            String fingerprint = sb.substring(0, sb.length() - 1);
+            redirectAttributes.addFlashAttribute("fingerprint", fingerprint);
+        } catch (Exception e) {
+            System.out.println("SHA-256 generation failed: " + e.getMessage());
+        }
 
         return "redirect:/userdashboard";
     }
+
+
 
 
 
