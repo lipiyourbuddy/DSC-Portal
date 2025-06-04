@@ -1,6 +1,8 @@
 package com.example.demo.controller;
 
+import com.example.demo.model.AuditLog;
 import com.example.demo.model.User;
+import com.example.demo.repository.AuditLogRepository;
 import com.example.demo.repository.UserRepository;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +43,9 @@ public class UserController {
 
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private AuditLogRepository auditLogRepo;
 
     @GetMapping("/home")
     public String showHomePage() {
@@ -86,7 +91,7 @@ public class UserController {
 
         userRepository.save(user);
 
-        // 🔐 Set user in session so dashboard works
+       
         session.setAttribute("loggedInUser", user);
 
         return "redirect:/userdashboard";
@@ -101,27 +106,49 @@ public class UserController {
                                   HttpSession session) {
 
         User user = userRepository.findByFullName(fullName);
+        boolean success = false;
 
-        if (user == null || !user.getPassword().equals(password)) {
-            model.addAttribute("error", "Invalid credentials");
-            return "userlogin";
-        }
-
-        session.setAttribute("loggedInUser", user);
-
-        String authMode = user.getAuthMode();
-
-        if ("OTP".equalsIgnoreCase(authMode)) {
-            return "redirect:/user/send-otp";
-        } else if ("DSC".equalsIgnoreCase(authMode)) {
-            return "redirect:/verify-dsc";
-        } else {
-            model.addAttribute("user", user);
+        if (user != null && user.getPassword().equals(password)) {
+            success = true;
+            session.setAttribute("loggedInUser", user);
             user.setLastLogin(LocalDateTime.now());
             userRepository.save(user);
-            return "userdashboard";
+
+            String authMode = user.getAuthMode();
+
+            
+            if ("OTP".equalsIgnoreCase(authMode)) {
+                return "redirect:/user/send-otp";
+            } else if ("DSC".equalsIgnoreCase(authMode)) {
+                return "redirect:/verify-dsc";
+            } else {
+            	// ✅ Audit log for successful login
+                AuditLog log = new AuditLog();
+                log.setUsername(fullName);
+                log.setMethod("PASSWORD");
+                log.setSuccess(false);
+                log.setTimeStamp(LocalDateTime.now());
+                auditLogRepo.save(log);
+
+                model.addAttribute("user", user);
+                return "userdashboard";
+            }
         }
+        
+        /*
+        // ❌ Audit log for failed login
+        AuditLog log = new AuditLog();
+        log.setUsername(fullName);
+        log.setMethod("PASSWORD");
+        log.setSuccess(false);
+        log.setTimeStamp(LocalDateTime.now());
+        auditLogRepo.save(log);
+        */
+
+        model.addAttribute("error", "Invalid credentials");
+        return "userlogin";
     }
+
 
     @GetMapping("/user/send-otp")
     public String sendOtpToUser(HttpSession session, Model model) {
@@ -161,6 +188,14 @@ public class UserController {
             model.addAttribute("user", user);
             user.setLastLogin(LocalDateTime.now());
             userRepository.save(user);
+            
+         // Save audit log
+            AuditLog log = new AuditLog();
+            log.setUsername(user.getFullName());
+            log.setMethod("OTP");
+            log.setSuccess(false);
+            log.setTimeStamp(LocalDateTime.now());
+            auditLogRepo.save(log);
             return "userdashboard";
         } else {
             model.addAttribute("error", "Invalid OTP. Try again.");
@@ -186,11 +221,14 @@ public class UserController {
         if (user == null) return "redirect:/userlogin";
 
         Path tempFile = null;
+        boolean success = false;
 
         try {
+            // Save uploaded DSC temporarily
             tempFile = Files.createTempFile("uploaded-", ".jks");
             dscFile.transferTo(tempFile.toFile());
 
+            // Load keystore and keys
             KeyStore ks = KeyStore.getInstance("JKS");
             try (FileInputStream fis = new FileInputStream(tempFile.toFile())) {
                 ks.load(fis, keyPassword.toCharArray());
@@ -200,28 +238,28 @@ public class UserController {
             PrivateKey privateKey = (PrivateKey) ks.getKey(alias, keyPassword.toCharArray());
             Certificate cert = ks.getCertificate(alias);
 
-           
+            // Sign challenge
             byte[] challenge = "verify-dsc-authentication".getBytes(StandardCharsets.UTF_8);
             Signature signer = Signature.getInstance("SHA256withRSA");
             signer.initSign(privateKey);
             signer.update(challenge);
             byte[] signatureBytes = signer.sign();
 
-            
+            // Verify using stored public key
             byte[] pubKeyBytes = Base64.getDecoder().decode(user.getPublicKey());
             PublicKey publicKey = KeyFactory.getInstance("RSA")
                     .generatePublic(new X509EncodedKeySpec(pubKeyBytes));
             Signature verifier = Signature.getInstance("SHA256withRSA");
             verifier.initVerify(publicKey);
             verifier.update(challenge);
-            boolean valid = verifier.verify(signatureBytes);
+            success = verifier.verify(signatureBytes);
 
-            if (!valid) {
+            if (!success) {
                 model.addAttribute("error", "DSC verification failed: signature mismatch.");
                 return "verify-dsc";
             }
 
-            
+            // Extract certificate info
             if (cert instanceof X509Certificate x509Cert) {
                 model.addAttribute("subject", x509Cert.getSubjectX500Principal().getName());
                 model.addAttribute("issuer", x509Cert.getIssuerX500Principal().getName());
@@ -229,7 +267,6 @@ public class UserController {
                 model.addAttribute("validTo", x509Cert.getNotAfter());
                 model.addAttribute("serialNumber", x509Cert.getSerialNumber().toString());
 
-                // SHA-256 fingerprint
                 MessageDigest md = MessageDigest.getInstance("SHA-256");
                 byte[] digest = md.digest(x509Cert.getEncoded());
                 StringBuilder sb = new StringBuilder();
@@ -238,22 +275,34 @@ public class UserController {
                 model.addAttribute("fingerprint", fingerprint);
             }
 
+            // Update user and show dashboard
             model.addAttribute("user", user);
             user.setLastLogin(LocalDateTime.now());
             userRepository.save(user);
-
-            return "userdashboard"; 
+            return "userdashboard";
 
         } catch (Exception e) {
             e.printStackTrace();
             model.addAttribute("error", "Verification failed: " + e.getMessage());
             return "verify-dsc";
         } finally {
-            if (tempFile != null) try {
-                Files.deleteIfExists(tempFile);
-            } catch (IOException ignored) {}
+            // Save audit log
+            AuditLog log = new AuditLog();
+            log.setUsername(user.getFullName());
+            log.setMethod("DSC");
+            log.setSuccess(false);
+            log.setTimeStamp(LocalDateTime.now());
+            auditLogRepo.save(log);
+
+            // Delete temp file
+            if (tempFile != null) {
+                try {
+                    Files.deleteIfExists(tempFile);
+                } catch (IOException ignored) {}
+            }
         }
     }
+
 
     @GetMapping("/download-dsc/{filename:.+}")
     @ResponseBody

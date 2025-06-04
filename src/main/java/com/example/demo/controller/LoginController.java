@@ -2,13 +2,16 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.OtpLogin;
 import com.example.demo.model.Admin;
+import com.example.demo.model.AuditLog;
 import com.example.demo.model.User;
 import com.example.demo.repository.AdminRepository;
+import com.example.demo.repository.AuditLogRepository;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +25,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Controller
@@ -32,6 +36,9 @@ public class LoginController {
 
     @Autowired
     private UserRepository userRepo;
+    
+    @Autowired
+    private AuditLogRepository auditLogRepo;
 
     @Autowired
     private EmailService emailService;
@@ -78,33 +85,50 @@ public class LoginController {
     
     @PostMapping("/verify-otp")
     public String verifyOtp(@ModelAttribute OtpLogin otpLogin, Model model) {
-        if (otpLogin.getEmail() == null || otpLogin.getOtp() == null) {
+        String rawEmail = otpLogin.getEmail();
+        String rawOtp = otpLogin.getOtp();
+
+        if (rawEmail == null || rawOtp == null) {
             model.addAttribute("error", "Email and OTP are required.");
             model.addAttribute("otpSent", true);
             model.addAttribute("otpLogin", otpLogin);
             return "login";
         }
 
-        String email = otpLogin.getEmail().trim().toLowerCase();
-        String correctOtp = otpStore.get(email);
+        String email = rawEmail.trim().toLowerCase();
+        String submittedOtp = rawOtp.trim();
+        String expectedOtp = otpStore.get(email);
 
-        if (correctOtp != null && correctOtp.equals(otpLogin.getOtp().trim())) {
-            List<User> users = (List<User>) userRepo.findAll();
-            model.addAttribute("users", users);
+        boolean success = expectedOtp != null && expectedOtp.equals(submittedOtp);
+
+        
+        
+		
+        
+        if (success) {
             otpStore.remove(email);
+            model.addAttribute("users", userRepo.findAll());
+         // 🔐 Log audit entry
+            AuditLog log = new AuditLog();
+            log.setUsername(email);
+            log.setMethod("OTP");
+            log.setSuccess(true);
+            log.setTimeStamp(LocalDateTime.now());
+            auditLogRepo.save(log);
             return "userlist";
         } else {
             model.addAttribute("error", "Invalid OTP");
             model.addAttribute("otpSent", true);
             model.addAttribute("otpLogin", otpLogin);
-            
-            System.out.println("Submitted Email: " + otpLogin.getEmail());
-            System.out.println("Submitted OTP: " + otpLogin.getOtp());
-            System.out.println("Expected OTP: " + correctOtp);
+
+            System.out.println("Submitted Email: " + email);
+            System.out.println("Submitted OTP: " + submittedOtp);
+            System.out.println("Expected OTP: " + expectedOtp);
 
             return "login";
         }
     }
+
 
     
     @PostMapping("/update-auth")
@@ -187,7 +211,13 @@ public class LoginController {
         model.addAttribute("filter", filter.toUpperCase());
         return "userlist";
     }
-
+    
+    @GetMapping("/admin/auditlogs")
+    public String viewAuditLogs(Model model) {
+        List<AuditLog> logs = auditLogRepo.findAll(Sort.by(Sort.Direction.DESC, "timeStamp"));
+        model.addAttribute("logs", logs);
+        return "auditlog";
+    }
 
 
     // Optional logout redirect

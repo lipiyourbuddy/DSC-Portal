@@ -8,6 +8,11 @@
 <div class="container mt-5">
     <h2>Registered Users</h2>
     <a th:href="@{/logout}" class="btn btn-secondary mb-3">Logout</a>
+	
+	<a th:href="@{/admin/auditlogs}" class="btn btn-outline-dark mt-4">
+	    View Audit Logs
+	</a>
+
 
     <!-- Filter form -->
     <form method="get" th:action="@{/admin/userlist}" class="mb-4">
